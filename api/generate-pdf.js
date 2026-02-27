@@ -1,5 +1,9 @@
-import chromium from "@sparticuz/chromium";
+import chromium from "@sparticuz/chromium-min";
 import puppeteer from "puppeteer-core";
+
+export const config = {
+  runtime: "nodejs18.x"
+};
 
 export default async function handler(req, res) {
   try {
@@ -9,16 +13,18 @@ export default async function handler(req, res) {
       return res.status(400).send("URL não informada");
     }
 
+    const executablePath = await chromium.executablePath();
+
     const browser = await puppeteer.launch({
       args: chromium.args,
-      executablePath: await chromium.executablePath(),
-      headless: chromium.headless,
+      executablePath,
+      headless: true,
     });
 
     const page = await browser.newPage();
 
     await page.goto(url, {
-      waitUntil: "networkidle0",
+      waitUntil: "networkidle2",
       timeout: 60000
     });
 
@@ -27,14 +33,7 @@ export default async function handler(req, res) {
     const pdf = await page.pdf({
       format: "A4",
       printBackground: true,
-      preferCSSPageSize: true,
-      scale: 1,
-      margin: {
-        top: "0mm",
-        bottom: "0mm",
-        left: "0mm",
-        right: "0mm"
-      }
+      preferCSSPageSize: true
     });
 
     await browser.close();
@@ -44,6 +43,6 @@ export default async function handler(req, res) {
 
   } catch (error) {
     console.error(error);
-    res.status(500).send("Erro ao gerar PDF");
+    res.status(500).send(error.toString());
   }
 }
